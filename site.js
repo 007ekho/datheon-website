@@ -50,17 +50,41 @@
     });
   }
 
-  // Contact form (front-end only demo)
+  // Contact form -> Web3Forms (works on static hosting like GitHub Pages)
   var form = document.querySelector("#contact-form");
   if (form) {
+    var note = document.querySelector("#form-note");
+    var btn = form.querySelector('button[type="submit"]');
+    function showNote(msg, ok) {
+      if (!note) return;
+      note.textContent = msg;
+      note.style.color = ok ? "var(--blue)" : "#C95E36";
+      note.style.display = "block";
+    }
     form.addEventListener("submit", function (e) {
       e.preventDefault();
-      var note = document.querySelector("#form-note");
-      if (note) {
-        note.textContent = "Thanks — your message is ready to send. Connect this form to your email or CRM to go live.";
-        note.style.display = "block";
+      var keyField = form.querySelector('[name="access_key"]');
+      var key = keyField ? keyField.value : "";
+      if (!key || key.indexOf("YOUR_") === 0) {
+        showNote("Form not connected yet — add your Web3Forms access key in contact.html to go live.", false);
+        return;
       }
-      form.reset();
+      var original = btn ? btn.innerHTML : "";
+      if (btn) { btn.disabled = true; btn.innerHTML = "Sending…"; }
+      fetch("https://api.web3forms.com/submit", { method: "POST", body: new FormData(form) })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j.success) {
+            showNote("Thanks — your message has been sent. We'll reply within one working day.", true);
+            form.reset();
+          } else {
+            showNote("Sorry, something went wrong. Please email hello@datheon.co.uk instead.", false);
+          }
+        })
+        .catch(function () {
+          showNote("Sorry, something went wrong. Please email hello@datheon.co.uk instead.", false);
+        })
+        .then(function () { if (btn) { btn.disabled = false; btn.innerHTML = original; } });
     });
   }
 })();
